@@ -10,8 +10,10 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -34,24 +36,30 @@ import java.util.Map;
 public class MainActivity extends Activity {
 
 
-    private static final String REGISTER_URL = "http://www.huima.de/post_nameandDistance.php"; //http://www.huima.de/post_nameandDistance.php
-    private LocationManager locationManager;
-    private LocationListener locationListener;
-    private boolean isStartAlreadyClicked;
-    private Activity act;
 
-    private LinearLayout login_layout ;
-    private LinearLayout play_layout;
+
+    private boolean isStartAlreadyClicked;
+
+
+
+
 
     private EditText ed;
     private Button send;
+    private LinearLayout login_layout ;
 
+    private LinearLayout play_layout;
     private Button start;
     private Button stop;
 
+
     private boolean firstLocation = true;
     private Location ort1;
+    private LocationManager locationManager;
+    private LocationListener locationListener;
 
+
+    private Intent mServiceIntent ;
 
 
     @Override
@@ -59,11 +67,11 @@ public class MainActivity extends Activity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        act = this;
+
         marshmallowGPSPremissionCheck();
-        Button start = (Button) findViewById(R.id.btn_start);
-        Button stop = (Button) findViewById(R.id.btn_stop);
-        Button send = (Button) findViewById(R.id.btn_send);
+        start = (Button) findViewById(R.id.btn_start);
+        stop = (Button) findViewById(R.id.btn_stop);
+        send = (Button) findViewById(R.id.btn_send);
 
         ed = (EditText) findViewById(R.id.et_benuname);
 
@@ -72,32 +80,22 @@ public class MainActivity extends Activity {
         play_layout.setVisibility(View.INVISIBLE);
 
 
+
+
+
+
         final LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
 // Define a listener that responds to location updates
         final LocationListener locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
 
-                AlertDialog.Builder builder1 = new AlertDialog.Builder(MainActivity.this);
-                builder1.setMessage("Change is happening");
-                builder1.setCancelable(true);
-
-                builder1.setPositiveButton(
-                        "Ok",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                dialog.cancel();
-                            }
-                        });
-
-
-                AlertDialog alert11 = builder1.create();
-                alert11.show();
                 if(firstLocation){
                     ort1 = location;
                     firstLocation = false;
                 }else{
                     SchnittstelleMitVariablen.distance += ort1.distanceTo(location);
+                    ort1 = location;
                 }
 
             }
@@ -110,6 +108,9 @@ public class MainActivity extends Activity {
 
             public void onProviderDisabled(String provider) {
 
+                Intent gpsOptionsIntent = new Intent(
+                        android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                startActivity(gpsOptionsIntent);
             }
         };
 
@@ -172,6 +173,10 @@ public class MainActivity extends Activity {
 
                     locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 30, 0, locationListener);
 
+                }else{
+                    Intent gpsOptionsIntent = new Intent(
+                            Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                    startActivity(gpsOptionsIntent);
                 }
 
                 isStartAlreadyClicked = true;
@@ -184,22 +189,13 @@ public class MainActivity extends Activity {
         stop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.i("variable:isStart..",isStartAlreadyClicked+"");
-                if (isStartAlreadyClicked) {
-                    locationManager.removeUpdates(locationListener);
-                    Thread t1 = new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Log.i("try", "to send data");
-                            sendNewDataToServer();
-                            Log.i("daten", "wurden gesendet");
-                            isStartAlreadyClicked = false;
-                        }
 
-                    });
-                    t1.start();
+                if (isStartAlreadyClicked) {
+                    mServiceIntent = new Intent(MainActivity.this, SendDataToServer.class);
+                    startService(mServiceIntent);
+
                 } else {
-                    Log.i("else", "fehler mit ifelse");
+
                 }
 
             }
@@ -214,44 +210,21 @@ public class MainActivity extends Activity {
         isStartAlreadyClicked = false;
     }
 
-    public void sendNewDataToServer() {
-        Log.i("sendData", "bin drin");
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, REGISTER_URL,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        Log.i("return", response);
-                        AlertDialog.Builder ad = new AlertDialog.Builder(getApplicationContext());
-
-                    }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        Log.i("Error", error.toString());
-                    }
-                }) {
-            @Override
-            protected Map<String, String> getParams() {
-                Map<String, String> params = new HashMap<String, String>();
-                DecimalFormat df = new DecimalFormat("0.00");
-                params.put("benuname", SchnittstelleMitVariablen.benuname);
-                params.put("distance", df.format(SchnittstelleMitVariablen.distance));
-                return params;
-            }
-
-        };
-
-        RequestQueue requestQueue = Volley.newRequestQueue(this);
-        requestQueue.add(stringRequest);
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if(mServiceIntent == null){
+            mServiceIntent = new Intent(MainActivity.this,SendDataToServer.class);
+            startService(mServiceIntent);
+        }
 
     }
 
     private void marshmallowGPSPremissionCheck() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                && act.checkSelfPermission(
+                && MainActivity.this.checkSelfPermission(
                 Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && act.checkSelfPermission(
+                && MainActivity.this.checkSelfPermission(
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(
                     new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,
