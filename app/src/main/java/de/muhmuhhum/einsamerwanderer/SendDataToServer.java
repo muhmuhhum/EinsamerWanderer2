@@ -1,9 +1,11 @@
 package de.muhmuhhum.einsamerwanderer;
 
-import android.app.AlertDialog;
+import android.app.Activity;
 import android.app.IntentService;
-import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.provider.SyncStateContract;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.android.volley.Request;
@@ -13,7 +15,6 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
-import java.security.Provider;
 import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +26,15 @@ public class SendDataToServer extends IntentService {
     public static double distance = 0.0;
     public static String benuname;
     private static final String REGISTER_URL = "http://www.huima.de/post_nameandDistance.php"; //http://www.huima.de/post_nameandDistance.php
+    public static Activity mainApp;
+
+    public static final String BROADCAST_ACTION =
+            "com.example.android.threadsample.BROADCAST";
+
+    // Defines the key for the status "extra" in an Intent
+    public static final String STATUS = "Status";
+
+    private Intent localIntent;
 
     public SendDataToServer(){
         super("SendDataToServer");
@@ -36,20 +46,35 @@ public class SendDataToServer extends IntentService {
 
 
 
+        // Broadcasts the Intent to receivers in this app.
+
+
             Log.i("sendData", "bin drin");
             StringRequest stringRequest = new StringRequest(Request.Method.POST, REGISTER_URL,
                     new Response.Listener<String>() {
                         @Override
                         public void onResponse(String response) {
-                            Log.i("return", response);
-                            AlertDialog.Builder ad = new AlertDialog.Builder(getApplicationContext());
+                            localIntent =
+                            new Intent(BROADCAST_ACTION)
 
+                                    .putExtra(STATUS, response);
+
+                            LocalBroadcastManager.getInstance(mainApp).sendBroadcast(localIntent);
+                            distance = 0.0;
                         }
                     },
                     new Response.ErrorListener() {
                         @Override
                         public void onErrorResponse(VolleyError error) {
-                            Log.i("Error", error.toString());
+
+                            localIntent =
+                                    new Intent(BROADCAST_ACTION)
+
+                                            .putExtra(STATUS, error.getMessage());
+
+                            LocalBroadcastManager.getInstance(mainApp).sendBroadcast(localIntent);
+
+
                         }
                     }) {
                 @Override
@@ -67,4 +92,6 @@ public class SendDataToServer extends IntentService {
             requestQueue.add(stringRequest);
 
     }
+
+
 }
