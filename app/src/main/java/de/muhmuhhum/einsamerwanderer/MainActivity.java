@@ -3,9 +3,11 @@ package de.muhmuhhum.einsamerwanderer;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
@@ -14,6 +16,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -62,12 +65,17 @@ public class MainActivity extends Activity {
     private Intent mServiceIntent ;
 
 
+    private final int MIN_DISTANCE = 30000;
+    private final int MIN_DURATION = 5;
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        SendDataToServer.mainApp = this;
         marshmallowGPSPremissionCheck();
         start = (Button) findViewById(R.id.btn_start);
         stop = (Button) findViewById(R.id.btn_stop);
@@ -158,20 +166,26 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View v) {
 
-               /* if (t == null) {
-                    t = new GpsThread();
-                    t.start();
-                    isStartAlreadyClicked = true;
-                }*/
+                AlertDialog.Builder builder1 = new AlertDialog.Builder(MainActivity.this);
+                builder1.setMessage("Started");
+                builder1.setCancelable(true);
 
-                if(locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
+                builder1.setPositiveButton(
+                        "Ok",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.cancel();
+                            }
+                        });
 
 
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 30, 0, locationListener);
+                AlertDialog alert11 = builder1.create();
+                alert11.show();
 
-                }else if(locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
+                if(locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
 
-                    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 30, 0, locationListener);
+
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_DISTANCE, MIN_DURATION, locationListener);
 
                 }else{
                     Intent gpsOptionsIntent = new Intent(
@@ -194,6 +208,8 @@ public class MainActivity extends Activity {
                     mServiceIntent = new Intent(MainActivity.this, SendDataToServer.class);
                     startService(mServiceIntent);
 
+                    locationManager.removeUpdates(locationListener);
+                    isStartAlreadyClicked = false;
                 } else {
 
                 }
@@ -201,6 +217,37 @@ public class MainActivity extends Activity {
             }
 
         });
+
+
+
+        BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String message = intent.getStringExtra(SendDataToServer.STATUS);
+                AlertDialog.Builder builder1 = new AlertDialog.Builder(MainActivity.this);
+                builder1.setMessage("Status: " + message);
+                builder1.setCancelable(true);
+
+                builder1.setPositiveButton(
+                        "Ok",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.cancel();
+                            }
+                        });
+
+
+                AlertDialog alert11 = builder1.create();
+                alert11.show();
+
+
+
+                }
+
+
+        };
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+                mMessageReceiver, new IntentFilter(SendDataToServer.BROADCAST_ACTION));
 
     }
 
@@ -218,17 +265,25 @@ public class MainActivity extends Activity {
             startService(mServiceIntent);
         }
 
+
+
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(SendDataToServer.benuname != null){
+            login_layout.setVisibility(View.INVISIBLE);
+            play_layout.setVisibility(View.VISIBLE);
+        }
     }
 
     private void marshmallowGPSPremissionCheck() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 && MainActivity.this.checkSelfPermission(
-                Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && MainActivity.this.checkSelfPermission(
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(
-                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,
-                            Manifest.permission.ACCESS_FINE_LOCATION},
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     1);
         } else {
             //   gps functions.
