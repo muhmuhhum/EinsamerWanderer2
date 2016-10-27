@@ -22,7 +22,8 @@ import java.util.Map;
  * Created by tomuelle on 27.10.2016.
  */
 public class SendDataToServer extends IntentService {
-
+    public static double distance = 0.0;
+    public static String benuname;
     private static final String REGISTER_URL = "http://www.huima.de/post_nameandDistance.php"; //http://www.huima.de/post_nameandDistance.php
 
     public SendDataToServer(){
@@ -55,8 +56,8 @@ public class SendDataToServer extends IntentService {
                 protected Map<String, String> getParams() {
                     Map<String, String> params = new HashMap<String, String>();
                     DecimalFormat df = new DecimalFormat("0.00");
-                    params.put("benuname", SchnittstelleMitVariablen.benuname);
-                    params.put("distance", df.format(SchnittstelleMitVariablen.distance));
+                    params.put("benuname", benuname);
+                    params.put("distance", df.format(distance));
                     return params;
                 }
 

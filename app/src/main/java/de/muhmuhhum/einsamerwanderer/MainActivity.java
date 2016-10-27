@@ -94,7 +94,7 @@ public class MainActivity extends Activity {
                     ort1 = location;
                     firstLocation = false;
                 }else{
-                    SchnittstelleMitVariablen.distance += ort1.distanceTo(location);
+                    SendDataToServer.distance += ort1.distanceTo(location);
                     ort1 = location;
                 }
 
@@ -143,7 +143,7 @@ public class MainActivity extends Activity {
                 }else{
                     login_layout.setVisibility(View.INVISIBLE);
                     play_layout.setVisibility(View.VISIBLE);
-                    SchnittstelleMitVariablen.benuname = ed.getText().toString();
+                    SendDataToServer.benuname = ed.getText().toString();
                     InputMethodManager inputManager = (InputMethodManager)
                             getSystemService(Context.INPUT_METHOD_SERVICE);
 
