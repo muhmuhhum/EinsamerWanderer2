@@ -61,8 +61,8 @@ public class MainActivity extends Activity {
     private Intent mServiceIntent;
 
 
-    private final int MIN_DISTANCE = 30000;
-    private final int MIN_DURATION = 5;
+    private final long MIN_TIME= 30000;
+    private final float MIN_DISTANCE = 5;
 
 
     @Override
@@ -183,7 +183,7 @@ public class MainActivity extends Activity {
                     alert11.show();
                     isStartAlreadyClicked = true;
 
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_DISTANCE, MIN_DURATION, locationListener);
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME, MIN_DISTANCE, locationListener);
 
                 }else{
                     Intent gpsOptionsIntent = new Intent(
