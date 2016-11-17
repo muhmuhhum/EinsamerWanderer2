@@ -16,6 +16,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.View;
@@ -39,17 +40,12 @@ import java.util.Map;
 public class MainActivity extends Activity {
 
 
-
-
     private boolean isStartAlreadyClicked;
-
-
-
 
 
     private EditText ed;
     private Button send;
-    private LinearLayout login_layout ;
+    private LinearLayout login_layout;
 
     private LinearLayout play_layout;
     private Button start;
@@ -62,12 +58,11 @@ public class MainActivity extends Activity {
     private LocationListener locationListener;
 
 
-    private Intent mServiceIntent ;
+    private Intent mServiceIntent;
 
 
     private final int MIN_DISTANCE = 30000;
     private final int MIN_DURATION = 5;
-
 
 
     @Override
@@ -88,27 +83,24 @@ public class MainActivity extends Activity {
         play_layout.setVisibility(View.INVISIBLE);
 
 
-
-
-
-
         final LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
 // Define a listener that responds to location updates
         final LocationListener locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
 
-                if(firstLocation){
+                if (firstLocation) {
                     ort1 = location;
                     firstLocation = false;
-                }else{
+                } else {
                     SendDataToServer.distance += ort1.distanceTo(location);
                     ort1 = location;
                 }
 
             }
 
-            public void onStatusChanged(String provider, int status, Bundle extras) {}
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+            }
 
             public void onProviderEnabled(String provider) {
 
@@ -123,7 +115,6 @@ public class MainActivity extends Activity {
         };
 
 // Register the listener with the Location Manager to receive location updates
-
 
 
         send.setOnClickListener(new View.OnClickListener() {
@@ -148,7 +139,7 @@ public class MainActivity extends Activity {
                     alert11.show();
 
 
-                }else{
+                } else {
                     login_layout.setVisibility(View.INVISIBLE);
                     play_layout.setVisibility(View.VISIBLE);
                     SendDataToServer.benuname = ed.getText().toString();
@@ -166,24 +157,31 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View v) {
 
-                AlertDialog.Builder builder1 = new AlertDialog.Builder(MainActivity.this);
-                builder1.setMessage("Started");
-                builder1.setCancelable(true);
-
-                builder1.setPositiveButton(
-                        "Ok",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                dialog.cancel();
-                            }
-                        });
 
 
-                AlertDialog alert11 = builder1.create();
-                alert11.show();
+                if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
 
-                if(locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
 
+                    if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                        marshmallowGPSPremissionCheck();
+                        return;
+                    }
+
+                    AlertDialog.Builder builder1 = new AlertDialog.Builder(MainActivity.this);
+                    builder1.setMessage("Started");
+                    builder1.setCancelable(true);
+                    builder1.setPositiveButton(
+                            "Ok",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    dialog.cancel();
+                                }
+                            });
+
+
+                    AlertDialog alert11 = builder1.create();
+                    alert11.show();
+                    isStartAlreadyClicked = true;
 
                     locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_DISTANCE, MIN_DURATION, locationListener);
 
@@ -193,10 +191,13 @@ public class MainActivity extends Activity {
                     startActivity(gpsOptionsIntent);
                 }
 
-                isStartAlreadyClicked = true;
 
 
-            }
+                }
+
+
+
+
         });
 
 
@@ -208,6 +209,12 @@ public class MainActivity extends Activity {
                     mServiceIntent = new Intent(MainActivity.this, SendDataToServer.class);
                     startService(mServiceIntent);
 
+
+                    if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                        marshmallowGPSPremissionCheck();
+                        return;
+                    }
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_DISTANCE, MIN_DURATION, locationListener);
                     locationManager.removeUpdates(locationListener);
                     isStartAlreadyClicked = false;
                 } else {
