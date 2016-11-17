@@ -214,7 +214,6 @@ public class MainActivity extends Activity {
                         marshmallowGPSPremissionCheck();
                         return;
                     }
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_DISTANCE, MIN_DURATION, locationListener);
                     locationManager.removeUpdates(locationListener);
                     isStartAlreadyClicked = false;
                 } else {
