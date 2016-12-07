@@ -9,6 +9,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -23,18 +24,10 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
-
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
-
-import java.text.DecimalFormat;
-import java.util.HashMap;
-import java.util.Map;
+import android.widget.TextView;
+import uk.co.chrisjenx.calligraphy.CalligraphyContextWrapper;
 
 
 public class MainActivity extends Activity {
@@ -48,6 +41,7 @@ public class MainActivity extends Activity {
     private LinearLayout login_layout;
 
     private LinearLayout play_layout;
+    private ImageView imageView;
     private Button start;
     private Button stop;
 
@@ -61,17 +55,24 @@ public class MainActivity extends Activity {
     private Intent mServiceIntent;
 
 
-    private final long MIN_TIME= 30000;
-    private final float MIN_DISTANCE = 5;
+    private final long MIN_TIME= 3000; // milisek.
+    private final float MIN_DISTANCE = 5; //meter
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
+
+
+
+
         setContentView(R.layout.activity_main);
         SendDataToServer.mainApp = this;
         marshmallowGPSPremissionCheck();
+
+        imageView = (ImageView) findViewById(R.id.imageView);
+
         start = (Button) findViewById(R.id.btn_start);
         stop = (Button) findViewById(R.id.btn_stop);
         send = (Button) findViewById(R.id.btn_send);
@@ -94,6 +95,10 @@ public class MainActivity extends Activity {
                     firstLocation = false;
                 } else {
                     SendDataToServer.distance += ort1.distanceTo(location);
+                    if(SendDataToServer.distance > 500){
+                        stop.callOnClick();
+                        start.callOnClick();
+                    }
                     ort1 = location;
                 }
 
@@ -113,6 +118,7 @@ public class MainActivity extends Activity {
                 startActivity(gpsOptionsIntent);
             }
         };
+
 
 // Register the listener with the Location Manager to receive location updates
 
@@ -149,8 +155,9 @@ public class MainActivity extends Activity {
                     inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(),
                             InputMethodManager.HIDE_NOT_ALWAYS);
                 }
-
+                imageView.setImageResource(R.drawable.campfire_remasterd);
             }
+
         });
 
         start.setOnClickListener(new View.OnClickListener() {
@@ -167,24 +174,12 @@ public class MainActivity extends Activity {
                         return;
                     }
 
-                    AlertDialog.Builder builder1 = new AlertDialog.Builder(MainActivity.this);
-                    builder1.setMessage("Started");
-                    builder1.setCancelable(true);
-                    builder1.setPositiveButton(
-                            "Ok",
-                            new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int id) {
-                                    dialog.cancel();
-                                }
-                            });
 
 
-                    AlertDialog alert11 = builder1.create();
-                    alert11.show();
                     isStartAlreadyClicked = true;
 
                     locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME, MIN_DISTANCE, locationListener);
-
+                    imageView.setImageResource(R.drawable.campfire_aus);
                 }else{
                     Intent gpsOptionsIntent = new Intent(
                             Settings.ACTION_LOCATION_SOURCE_SETTINGS);
@@ -216,10 +211,11 @@ public class MainActivity extends Activity {
                     }
                     locationManager.removeUpdates(locationListener);
                     isStartAlreadyClicked = false;
+
                 } else {
 
                 }
-
+                imageView.setImageResource(R.drawable.campfire_remasterd);
             }
 
         });
@@ -304,7 +300,13 @@ public class MainActivity extends Activity {
             //  gps functionality
         }else{
             System.exit(0);
+            //TODO
         }
+    }
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(CalligraphyContextWrapper.wrap(newBase));
     }
 
 

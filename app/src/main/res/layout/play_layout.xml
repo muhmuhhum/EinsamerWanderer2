@@ -9,25 +9,28 @@
     android:id="@+id/play_layout"
     android:layout_below="@+id/tv_header">
 
-<Button
+    <ImageView
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:id="@+id/imageView"
+        android:layout_gravity="center_horizontal"
+        android:adjustViewBounds="true"
+        android:scaleType="fitCenter"
+        android:nestedScrollingEnabled="false"
+         />
+
+    <Button
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:text="start"
+    android:text="Lager abbrechen"
     android:id="@+id/btn_start"
     android:layout_gravity="center_horizontal" />
 
 <Button
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:text="Stop"
+    android:text="Lager Aufbauen"
     android:id="@+id/btn_stop"
     android:layout_gravity="center_horizontal" />
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/mLatitudeText"/>
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/mLongitudeText"/>
+
 </LinearLayout>
