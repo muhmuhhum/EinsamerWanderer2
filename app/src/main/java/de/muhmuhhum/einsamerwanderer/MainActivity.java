@@ -9,24 +9,21 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.LocalBroadcastManager;
-import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.TextView;
+
 import uk.co.chrisjenx.calligraphy.CalligraphyContextWrapper;
 
 
@@ -94,8 +91,8 @@ public class MainActivity extends Activity {
                     ort1 = location;
                     firstLocation = false;
                 } else {
-                    SendDataToServer.distance += ort1.distanceTo(location);
-                    if(SendDataToServer.distance > 500){
+                    SendDataToServer.DISTANCE += ort1.distanceTo(location);
+                    if(SendDataToServer.DISTANCE % 500 > 0){
                         stop.callOnClick();
                         start.callOnClick();
                     }
@@ -146,9 +143,12 @@ public class MainActivity extends Activity {
 
 
                 } else {
+
                     login_layout.setVisibility(View.INVISIBLE);
                     play_layout.setVisibility(View.VISIBLE);
-                    SendDataToServer.benuname = ed.getText().toString();
+                    SendDataToServer.BENUNAME = ed.getText().toString();
+                    start.callOnClick();
+                    SendDataToServer.firstStart = false;
                     InputMethodManager inputManager = (InputMethodManager)
                             getSystemService(Context.INPUT_METHOD_SERVICE);
 
@@ -274,7 +274,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        if(SendDataToServer.benuname != null){
+        if(SendDataToServer.BENUNAME != null){
             login_layout.setVisibility(View.INVISIBLE);
             play_layout.setVisibility(View.VISIBLE);
         }

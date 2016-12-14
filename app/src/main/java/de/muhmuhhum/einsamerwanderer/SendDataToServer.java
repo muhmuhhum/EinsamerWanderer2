@@ -2,9 +2,7 @@ package de.muhmuhhum.einsamerwanderer;
 
 import android.app.Activity;
 import android.app.IntentService;
-import android.content.Context;
 import android.content.Intent;
-import android.provider.SyncStateContract;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -23,8 +21,10 @@ import java.util.Map;
  * Created by tomuelle on 27.10.2016.
  */
 public class SendDataToServer extends IntentService {
-    public static double distance = 0.0;
-    public static String benuname;
+    public static double DISTANCE = 0.0;
+    public static String BENUNAME;
+    public static int ID;
+    public static boolean firstStart = true;
     private static final String REGISTER_URL = "http://www.huima.de/post_nameandDistance.php"; //http://www.huima.de/post_nameandDistance.php
     public static Activity mainApp;
 
@@ -35,7 +35,6 @@ public class SendDataToServer extends IntentService {
     public static final String STATUS = "Status";
 
     private Intent localIntent;
-
     public SendDataToServer(){
         super("SendDataToServer");
 
@@ -54,13 +53,21 @@ public class SendDataToServer extends IntentService {
                     new Response.Listener<String>() {
                         @Override
                         public void onResponse(String response) {
+
+                            if(response.contains("ID")){
+                                String[] splited = response.split(";");
+                                ID = Integer.parseInt(splited[1]);
+                                DISTANCE = Double.parseDouble(splited[2]);
+                                return;
+                            }
+
                             localIntent =
                             new Intent(BROADCAST_ACTION)
 
                                     .putExtra(STATUS, response);
 
                             LocalBroadcastManager.getInstance(mainApp).sendBroadcast(localIntent);
-                            distance = 0.0;
+                            DISTANCE = 0.0;
                         }
                     },
                     new Response.ErrorListener() {
@@ -81,8 +88,13 @@ public class SendDataToServer extends IntentService {
                 protected Map<String, String> getParams() {
                     Map<String, String> params = new HashMap<String, String>();
                     DecimalFormat df = new DecimalFormat("0.00");
-                    params.put("benuname", benuname);
-                    params.put("distance", df.format(distance));
+                    if(firstStart){
+                        params.put("BENUNAME", BENUNAME);
+                    }else{
+                        params.put("ID", String.valueOf(ID));
+                        params.put("DISTANCE", df.format(DISTANCE));
+
+                    }
                     return params;
                 }
 
