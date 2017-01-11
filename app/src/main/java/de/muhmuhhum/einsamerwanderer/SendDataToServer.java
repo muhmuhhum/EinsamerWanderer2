@@ -2,7 +2,10 @@ package de.muhmuhhum.einsamerwanderer;
 
 import android.app.Activity;
 import android.app.IntentService;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -21,7 +24,7 @@ import java.util.Map;
  * Created by tomuelle on 27.10.2016.
  */
 public class SendDataToServer extends IntentService {
-    public static double DISTANCE = 0.0;
+    public static int DISTANCE = 0;
     public static String BENUNAME;
     public static int ID;
     public static boolean firstStart = true;
@@ -34,6 +37,7 @@ public class SendDataToServer extends IntentService {
     // Defines the key for the status "extra" in an Intent
     public static final String STATUS = "Status";
 
+    private SharedPreferences sharedPreferences;
     private Intent localIntent;
     public SendDataToServer(){
         super("SendDataToServer");
@@ -55,11 +59,26 @@ public class SendDataToServer extends IntentService {
                         public void onResponse(String response) {
 
                             if(response.contains("ID")){
+                                Log.i("response", response);
                                 String[] splited = response.split(";");
                                 ID = Integer.parseInt(splited[1]);
-                                DISTANCE = Double.parseDouble(splited[2]);
-                                return;
+                                Log.i("ID", ID + "");
+                                int distance = Integer.parseInt(splited[2]);
+                                sharedPreferences = mainApp.getPreferences(Context.MODE_PRIVATE);
+                                int dbDistance = 0;
+                                try {
+                                    dbDistance = mainApp.getResources().getInteger(ID);
+                                }catch(Resources.NotFoundException e){
+
+                                }
+                                if(distance > dbDistance){
+                                    SharedPreferences.Editor edit = sharedPreferences.edit();
+                                    edit.putInt(ID+"",distance);
+                                    edit.commit();
+                                }
+                                Log.i("Distance", DISTANCE + "");
                             }
+
 
                             localIntent =
                             new Intent(BROADCAST_ACTION)
@@ -67,7 +86,6 @@ public class SendDataToServer extends IntentService {
                                     .putExtra(STATUS, response);
 
                             LocalBroadcastManager.getInstance(mainApp).sendBroadcast(localIntent);
-                            DISTANCE = 0.0;
                         }
                     },
                     new Response.ErrorListener() {
@@ -87,12 +105,15 @@ public class SendDataToServer extends IntentService {
                 @Override
                 protected Map<String, String> getParams() {
                     Map<String, String> params = new HashMap<String, String>();
-                    DecimalFormat df = new DecimalFormat("0.00");
                     if(firstStart){
-                        params.put("BENUNAME", BENUNAME);
+                        params.put("benuname", BENUNAME);
+                        Log.i("benuname",BENUNAME);
+                        firstStart = false;
                     }else{
-                        params.put("ID", String.valueOf(ID));
-                        params.put("DISTANCE", df.format(DISTANCE));
+                        params.put("id", ID+"");
+                        sharedPreferences = mainApp.getPreferences(Context.MODE_PRIVATE);
+                        int distane = mainApp.getResources().getInteger(ID);
+                        params.put("distance", distane+"");
 
                     }
                     return params;

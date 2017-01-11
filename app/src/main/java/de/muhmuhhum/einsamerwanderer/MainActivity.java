@@ -8,7 +8,9 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -56,6 +58,8 @@ public class MainActivity extends Activity {
     private final float MIN_DISTANCE = 5; //meter
 
 
+    private SharedPreferences sharedPreferences;
+    private SharedPreferences.Editor editor;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -80,28 +84,45 @@ public class MainActivity extends Activity {
         play_layout = (LinearLayout) findViewById(R.id.play_layout);
         play_layout.setVisibility(View.INVISIBLE);
 
+        mServiceIntent = new Intent(MainActivity.this, SendDataToServer.class);
+
+        //region sharedPreferences
+       sharedPreferences = this.getPreferences(Context.MODE_PRIVATE);
+        editor = sharedPreferences.edit();
+        //endregion
 
         final LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
 // Define a listener that responds to location updates
-        final LocationListener locationListener = new LocationListener() {
-            public void onLocationChanged(Location location) {
 
+        final LocationListener locationListener = new LocationListener() {
+            int oldDistance = 0;
+            public void onLocationChanged(Location location) {
+                int distance = 0;
+                try {
+                    distance = getResources().getInteger(SendDataToServer.ID);
+                }catch(Resources.NotFoundException e){
+
+                }
                 if (firstLocation) {
                     ort1 = location;
                     firstLocation = false;
+                     oldDistance = distance ;
                 } else {
-                    SendDataToServer.DISTANCE += ort1.distanceTo(location);
-                    if(SendDataToServer.DISTANCE % 500 > 0){
-                        stop.callOnClick();
-                        start.callOnClick();
-                    }
+                    distance += ort1.distanceTo(location);
+                    editor.putInt(SendDataToServer.ID+"",distance);
                     ort1 = location;
+                    if(oldDistance/500 < distance/500){
+                        startService(mServiceIntent);
+                        oldDistance = distance;
+                    }
+
                 }
 
             }
 
             public void onStatusChanged(String provider, int status, Bundle extras) {
+
             }
 
             public void onProviderEnabled(String provider) {
@@ -146,9 +167,9 @@ public class MainActivity extends Activity {
 
                     login_layout.setVisibility(View.INVISIBLE);
                     play_layout.setVisibility(View.VISIBLE);
-                    SendDataToServer.BENUNAME = ed.getText().toString();
-                    start.callOnClick();
-                    SendDataToServer.firstStart = false;
+                    SendDataToServer.BENUNAME = ed.getText().toString().trim();
+                    startService(mServiceIntent);
+
                     InputMethodManager inputManager = (InputMethodManager)
                             getSystemService(Context.INPUT_METHOD_SERVICE);
 
@@ -201,7 +222,7 @@ public class MainActivity extends Activity {
             public void onClick(View v) {
 
                 if (isStartAlreadyClicked) {
-                    mServiceIntent = new Intent(MainActivity.this, SendDataToServer.class);
+
                     startService(mServiceIntent);
 
 
@@ -266,7 +287,6 @@ public class MainActivity extends Activity {
             mServiceIntent = new Intent(MainActivity.this,SendDataToServer.class);
             startService(mServiceIntent);
         }
-
 
 
     }
