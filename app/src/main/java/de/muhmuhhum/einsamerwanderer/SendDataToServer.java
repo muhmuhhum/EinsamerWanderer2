@@ -24,12 +24,12 @@ import java.util.Map;
  * Created by tomuelle on 27.10.2016.
  */
 public class SendDataToServer extends IntentService {
-    public static int DISTANCE = 0;
     public static String BENUNAME;
     public static int ID;
+    public static int counter=0;
     public static boolean firstStart = true;
     private static final String REGISTER_URL = "http://www.huima.de/post_nameandDistance.php"; //http://www.huima.de/post_nameandDistance.php
-    public static Activity mainApp;
+
 
     public static final String BROADCAST_ACTION =
             "com.example.android.threadsample.BROADCAST";
@@ -51,53 +51,56 @@ public class SendDataToServer extends IntentService {
 
         // Broadcasts the Intent to receivers in this app.
 
-
+            sharedPreferences = getBaseContext().getSharedPreferences(getString(R.string.saved_Distance),Context.MODE_PRIVATE);
             Log.i("sendData", "bin drin");
             StringRequest stringRequest = new StringRequest(Request.Method.POST, REGISTER_URL,
                     new Response.Listener<String>() {
                         @Override
                         public void onResponse(String response) {
+                            Log.i("Nachverfolgung","On response" + response);
 
                             if(response.contains("ID")){
                                 Log.i("response", response);
                                 String[] splited = response.split(";");
                                 ID = Integer.parseInt(splited[1]);
                                 Log.i("ID", ID + "");
-                                int distance = Integer.parseInt(splited[2]);
-                                sharedPreferences = mainApp.getPreferences(Context.MODE_PRIVATE);
-                                int dbDistance = 0;
-                                try {
-                                    dbDistance = mainApp.getResources().getInteger(ID);
-                                }catch(Resources.NotFoundException e){
+                                int dbDistance = Integer.parseInt(splited[2]);
 
-                                }
+                                int distance = 0;
+                                distance = sharedPreferences.getInt(ID+"",distance);
+
+
                                 if(distance > dbDistance){
-                                    SharedPreferences.Editor edit = sharedPreferences.edit();
-                                    edit.putInt(ID+"",distance);
-                                    edit.commit();
+
+                                    Intent baum = new Intent(getBaseContext(), SendDataToServer.class);
+                                    startService(baum);
+
+                                }else{
+                                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                                    editor.putInt(ID+"", distance);
+                                    editor.commit();
                                 }
-                                Log.i("Distance", DISTANCE + "");
+                                Log.i("Distance", distance + "");
                             }
 
 
                             localIntent =
                             new Intent(BROADCAST_ACTION)
 
-                                    .putExtra(STATUS, response);
+                                    .putExtra(STATUS, response+counter);
+                            counter++;
 
-                            LocalBroadcastManager.getInstance(mainApp).sendBroadcast(localIntent);
+                            LocalBroadcastManager.getInstance(getBaseContext()).sendBroadcast(localIntent);
                         }
                     },
                     new Response.ErrorListener() {
                         @Override
                         public void onErrorResponse(VolleyError error) {
 
-                            localIntent =
-                                    new Intent(BROADCAST_ACTION)
+                            localIntent = new Intent(BROADCAST_ACTION).putExtra(STATUS, error.getMessage()+counter);
+                            counter++;
+                            LocalBroadcastManager.getInstance(getBaseContext()).sendBroadcast(localIntent);
 
-                                            .putExtra(STATUS, error.getMessage());
-
-                            LocalBroadcastManager.getInstance(mainApp).sendBroadcast(localIntent);
 
 
                         }
@@ -111,9 +114,10 @@ public class SendDataToServer extends IntentService {
                         firstStart = false;
                     }else{
                         params.put("id", ID+"");
-                        sharedPreferences = mainApp.getPreferences(Context.MODE_PRIVATE);
-                        int distane = mainApp.getResources().getInteger(ID);
-                        params.put("distance", distane+"");
+
+                        int distance = 0;
+                        distance = sharedPreferences.getInt(ID+"",distance);
+                        params.put("distance", distance+"");
 
                     }
                     return params;
@@ -121,8 +125,10 @@ public class SendDataToServer extends IntentService {
 
             };
 
+
             RequestQueue requestQueue = Volley.newRequestQueue(this);
             requestQueue.add(stringRequest);
+            Log.i("Nachverfolgung","wird gesendet");
 
     }
 

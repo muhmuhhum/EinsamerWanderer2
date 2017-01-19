@@ -19,6 +19,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.LocalBroadcastManager;
+import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -32,8 +33,12 @@ import uk.co.chrisjenx.calligraphy.CalligraphyContextWrapper;
 public class MainActivity extends Activity {
 
 
-    private boolean isStartAlreadyClicked;
+    //TODO: und kein internet beim einloggen lösen
 
+
+    private static boolean isStartAlreadyClicked = false;
+
+    //region Layout definition
 
     private EditText ed;
     private Button send;
@@ -45,21 +50,32 @@ public class MainActivity extends Activity {
     private Button stop;
 
 
+    //endregion
+
+    //region ForLocation definition
     private boolean firstLocation = true;
     private Location ort1;
     private LocationManager locationManager;
     private LocationListener locationListener;
-
-
-    private Intent mServiceIntent;
-
-
     private final long MIN_TIME= 3000; // milisek.
     private final float MIN_DISTANCE = 5; //meter
 
+    //endregion
+
+    //region mServiceIntent definition
+    private Intent mServiceIntent;
+    //endregion
+
+
+    private static int WANNSCHREIBEN = 20;
+
+
+//region sharedPreferences definition
 
     private SharedPreferences sharedPreferences;
     private SharedPreferences.Editor editor;
+
+    //endregion
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -69,9 +85,11 @@ public class MainActivity extends Activity {
 
 
         setContentView(R.layout.activity_main);
-        SendDataToServer.mainApp = this;
+
         marshmallowGPSPremissionCheck();
 
+
+        //region Zuweisung der Ids
         imageView = (ImageView) findViewById(R.id.imageView);
 
         start = (Button) findViewById(R.id.btn_start);
@@ -83,11 +101,13 @@ public class MainActivity extends Activity {
         login_layout = (LinearLayout) findViewById(R.id.login_layout);
         play_layout = (LinearLayout) findViewById(R.id.play_layout);
         play_layout.setVisibility(View.INVISIBLE);
+        //endregion
 
         mServiceIntent = new Intent(MainActivity.this, SendDataToServer.class);
 
+
         //region sharedPreferences
-       sharedPreferences = this.getPreferences(Context.MODE_PRIVATE);
+       sharedPreferences = this.getSharedPreferences(getString(R.string.saved_Distance),Context.MODE_PRIVATE) ;
         editor = sharedPreferences.edit();
         //endregion
 
@@ -95,12 +115,14 @@ public class MainActivity extends Activity {
 
 // Define a listener that responds to location updates
 
+        //region Location Listener
         final LocationListener locationListener = new LocationListener() {
             int oldDistance = 0;
             public void onLocationChanged(Location location) {
                 int distance = 0;
                 try {
                     distance = getResources().getInteger(SendDataToServer.ID);
+                    Log.i("distance",distance+"");
                 }catch(Resources.NotFoundException e){
 
                 }
@@ -111,10 +133,14 @@ public class MainActivity extends Activity {
                 } else {
                     distance += ort1.distanceTo(location);
                     editor.putInt(SendDataToServer.ID+"",distance);
+                    editor.commit();
                     ort1 = location;
-                    if(oldDistance/500 < distance/500){
+
+                    if(oldDistance/WANNSCHREIBEN < distance/WANNSCHREIBEN){
                         startService(mServiceIntent);
                         oldDistance = distance;
+
+
                     }
 
                 }
@@ -136,11 +162,12 @@ public class MainActivity extends Activity {
                 startActivity(gpsOptionsIntent);
             }
         };
-
+        //endregion
 
 // Register the listener with the Location Manager to receive location updates
 
 
+        //region send OnClickListener
         send.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -168,6 +195,7 @@ public class MainActivity extends Activity {
                     login_layout.setVisibility(View.INVISIBLE);
                     play_layout.setVisibility(View.VISIBLE);
                     SendDataToServer.BENUNAME = ed.getText().toString().trim();
+                    Log.i("Nachverfolgung","in send else");
                     startService(mServiceIntent);
 
                     InputMethodManager inputManager = (InputMethodManager)
@@ -181,6 +209,9 @@ public class MainActivity extends Activity {
 
         });
 
+        //endregion
+
+        //region start OnClickListener
         start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -216,11 +247,13 @@ public class MainActivity extends Activity {
 
         });
 
+        //endregion
 
+        //region stop OnClickListener
         stop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                Log.i("Bin im Stop",isStartAlreadyClicked+"");
                 if (isStartAlreadyClicked) {
 
                     startService(mServiceIntent);
@@ -237,32 +270,45 @@ public class MainActivity extends Activity {
 
                 }
                 imageView.setImageResource(R.drawable.campfire_remasterd);
+
             }
 
         });
 
+        //endregion
 
 
+
+        //region Brodcaster for Service Input
         BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                String message = intent.getStringExtra(SendDataToServer.STATUS);
-                AlertDialog.Builder builder1 = new AlertDialog.Builder(MainActivity.this);
-                builder1.setMessage("Status: " + message);
-                builder1.setCancelable(true);
+                if(SendDataToServer.ID == 0){
+                    AlertDialog.Builder builder2 = new AlertDialog.Builder(MainActivity.this);
+                    builder2.setMessage("Sie haben ihr internet aus");
+                    builder2.setCancelable(true);
+                    AlertDialog al = builder2.create();
+                    al.show();
+                    login_layout.setVisibility(View.VISIBLE);
+                    play_layout.setVisibility(View.INVISIBLE);
+                }else {
+                    String message = intent.getStringExtra(SendDataToServer.STATUS);
+                    AlertDialog.Builder builder1 = new AlertDialog.Builder(MainActivity.this);
+                    builder1.setMessage("Status: " + message);
+                    builder1.setCancelable(true);
 
-                builder1.setPositiveButton(
-                        "Ok",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                dialog.cancel();
-                            }
-                        });
+                    builder1.setPositiveButton(
+                            "Ok",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int id) {
+                                    dialog.cancel();
+                                }
+                            });
 
 
-                AlertDialog alert11 = builder1.create();
-                alert11.show();
-
+                    AlertDialog alert11 = builder1.create();
+                    alert11.show();
+                }
 
 
                 }
@@ -271,13 +317,13 @@ public class MainActivity extends Activity {
         };
         LocalBroadcastManager.getInstance(this).registerReceiver(
                 mMessageReceiver, new IntentFilter(SendDataToServer.BROADCAST_ACTION));
-
+        //endregion
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        isStartAlreadyClicked = false;
+
     }
 
     @Override
@@ -292,12 +338,19 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         if(SendDataToServer.BENUNAME != null){
             login_layout.setVisibility(View.INVISIBLE);
             play_layout.setVisibility(View.VISIBLE);
         }
+
     }
 
     private void marshmallowGPSPremissionCheck() {
