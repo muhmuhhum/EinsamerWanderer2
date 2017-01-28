@@ -9,6 +9,8 @@ import android.content.res.Resources;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Cache;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -20,7 +22,7 @@ import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
+/** Klasse die Daten an den Server schicken
  * Created by tomuelle on 27.10.2016.
  */
 public class SendDataToServer extends IntentService {
@@ -36,6 +38,7 @@ public class SendDataToServer extends IntentService {
 
     // Defines the key for the status "extra" in an Intent
     public static final String STATUS = "Status";
+    public static final String ERROR = "Error";
 
     private SharedPreferences sharedPreferences;
     private Intent localIntent;
@@ -48,6 +51,9 @@ public class SendDataToServer extends IntentService {
     protected void onHandleIntent(Intent intent) {
 
 
+
+        RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
+        requestQueue.start();
 
         // Broadcasts the Intent to receivers in this app.
 
@@ -85,9 +91,7 @@ public class SendDataToServer extends IntentService {
 
 
                             localIntent =
-                            new Intent(BROADCAST_ACTION)
-
-                                    .putExtra(STATUS, response+counter);
+                            new Intent(BROADCAST_ACTION).putExtra(STATUS, response+counter);
                             counter++;
 
                             LocalBroadcastManager.getInstance(getBaseContext()).sendBroadcast(localIntent);
@@ -96,39 +100,31 @@ public class SendDataToServer extends IntentService {
                     new Response.ErrorListener() {
                         @Override
                         public void onErrorResponse(VolleyError error) {
-
-                            localIntent = new Intent(BROADCAST_ACTION).putExtra(STATUS, error.getMessage()+counter);
+                            Log.i("Fehler",error.toString());
+                            localIntent = new Intent(BROADCAST_ACTION).putExtra(ERROR, error.getMessage()+counter);
                             counter++;
                             LocalBroadcastManager.getInstance(getBaseContext()).sendBroadcast(localIntent);
-
-
-
                         }
-                    }) {
+                    }){
                 @Override
-                protected Map<String, String> getParams() {
+                protected Map<String, String> getParams() throws AuthFailureError {
                     Map<String, String> params = new HashMap<String, String>();
-                    if(firstStart){
-                        params.put("benuname", BENUNAME);
-                        Log.i("benuname",BENUNAME);
-                        firstStart = false;
-                    }else{
-                        params.put("id", ID+"");
 
-                        int distance = 0;
-                        distance = sharedPreferences.getInt(ID+"",distance);
-                        params.put("distance", distance+"");
+                        if (firstStart) {
+                            params.put("benuname", BENUNAME);
+                            firstStart = false;
+                        } else {
+                            params.put("id", ID + "");
 
-                    }
+                            int distance = 0;
+                            distance = sharedPreferences.getInt(ID + "", distance);
+                            params.put("distance", distance + "");
+                        }
                     return params;
                 }
-
             };
-
-
-            RequestQueue requestQueue = Volley.newRequestQueue(this);
             requestQueue.add(stringRequest);
-            Log.i("Nachverfolgung","wird gesendet");
+
 
     }
 

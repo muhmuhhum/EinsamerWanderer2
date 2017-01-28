@@ -27,6 +27,8 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
+import com.android.volley.toolbox.Volley;
+
 import uk.co.chrisjenx.calligraphy.CalligraphyContextWrapper;
 
 
@@ -39,6 +41,11 @@ public class MainActivity extends Activity {
     private static boolean isStartAlreadyClicked = false;
 
     //region Layout definition
+
+
+    private Button btn_logdin;
+    private Button btn_change;
+    private LinearLayout already_login;
 
     private EditText ed;
     private Button send;
@@ -92,15 +99,29 @@ public class MainActivity extends Activity {
         //region Zuweisung der Ids
         imageView = (ImageView) findViewById(R.id.imageView);
 
+
+        btn_logdin = (Button) findViewById(R.id.btn_logdin);
+        btn_change = (Button) findViewById(R.id.btn_change);
+        already_login = (LinearLayout) findViewById(R.id.already_login);
+
         start = (Button) findViewById(R.id.btn_start);
         stop = (Button) findViewById(R.id.btn_stop);
         send = (Button) findViewById(R.id.btn_send);
+
 
         ed = (EditText) findViewById(R.id.et_benuname);
 
         login_layout = (LinearLayout) findViewById(R.id.login_layout);
         play_layout = (LinearLayout) findViewById(R.id.play_layout);
+
+
+        already_login.setVisibility(View.INVISIBLE);
+        login_layout.setVisibility(View.INVISIBLE);
         play_layout.setVisibility(View.INVISIBLE);
+        play_layout.setVisibility(View.INVISIBLE);
+
+
+
         //endregion
 
         mServiceIntent = new Intent(MainActivity.this, SendDataToServer.class);
@@ -110,6 +131,13 @@ public class MainActivity extends Activity {
        sharedPreferences = this.getSharedPreferences(getString(R.string.saved_Distance),Context.MODE_PRIVATE) ;
         editor = sharedPreferences.edit();
         //endregion
+
+
+        if(sharedPreferences.contains(getString(R.string.benutzerLogdIn))){
+            already_login.setVisibility(View.VISIBLE);
+        }else{
+            login_layout.setVisibility(View.VISIBLE);
+        }
 
         final LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
@@ -148,7 +176,7 @@ public class MainActivity extends Activity {
             }
 
             public void onStatusChanged(String provider, int status, Bundle extras) {
-
+                Log.i("prov",provider);
             }
 
             public void onProviderEnabled(String provider) {
@@ -194,9 +222,18 @@ public class MainActivity extends Activity {
 
                     login_layout.setVisibility(View.INVISIBLE);
                     play_layout.setVisibility(View.VISIBLE);
+
+
                     SendDataToServer.BENUNAME = ed.getText().toString().trim();
+
                     Log.i("Nachverfolgung","in send else");
+                    mServiceIntent = new Intent(MainActivity.this,SendDataToServer.class);
+
                     startService(mServiceIntent);
+
+
+                    editor.putString(getString(R.string.benutzerLogdIn),SendDataToServer.BENUNAME);
+                    editor.commit();
 
                     InputMethodManager inputManager = (InputMethodManager)
                             getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -275,6 +312,27 @@ public class MainActivity extends Activity {
 
         });
 
+
+        btn_logdin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                String benuname = sharedPreferences.getString(getString(R.string.benutzerLogdIn),"");
+                ed.setText(benuname);
+                already_login.setVisibility(View.INVISIBLE);
+                send.callOnClick();
+            }
+        });
+
+        btn_change.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                already_login.setVisibility(View.INVISIBLE);
+                login_layout.setVisibility(View.VISIBLE);
+
+            }
+        });
+
         //endregion
 
 
@@ -283,16 +341,21 @@ public class MainActivity extends Activity {
         BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if(SendDataToServer.ID == 0){
-                    AlertDialog.Builder builder2 = new AlertDialog.Builder(MainActivity.this);
-                    builder2.setMessage("Sie haben ihr internet aus");
-                    builder2.setCancelable(true);
-                    AlertDialog al = builder2.create();
-                    al.show();
-                    login_layout.setVisibility(View.VISIBLE);
-                    play_layout.setVisibility(View.INVISIBLE);
-                }else {
                     String message = intent.getStringExtra(SendDataToServer.STATUS);
+                    String error = intent.getStringExtra(SendDataToServer.ERROR);
+                    if(error != null) {
+                        mServiceIntent = null;
+                        AlertDialog.Builder builder2 = new AlertDialog.Builder(MainActivity.this);
+                        builder2.setMessage("Sie haben ihr internet aus");
+                        builder2.setCancelable(true);
+                        AlertDialog al = builder2.create();
+                        al.show();
+                        SendDataToServer.firstStart = true;
+                        login_layout.setVisibility(View.VISIBLE);
+                        play_layout.setVisibility(View.INVISIBLE);
+
+                    }else{
+
                     AlertDialog.Builder builder1 = new AlertDialog.Builder(MainActivity.this);
                     builder1.setMessage("Status: " + message);
                     builder1.setCancelable(true);

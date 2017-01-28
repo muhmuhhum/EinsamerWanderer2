@@ -23,5 +23,6 @@
 
     <include layout="@layout/login_layout"></include>
     <include layout="@layout/play_layout"></include>
+    <include layout="@layout/already_login"></include>
 
 </RelativeLayout>
